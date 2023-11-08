@@ -1,0 +1,110 @@
+# Write version https://docs.docker.jp/compose/compose-file/compose-versioning.>
+version: '3.8'
+
+# Startup container
+services:
+  # Nginx
+  nginx:
+    # Container name
+    container_name: waya-web_nginx
+    # Container image
+    image: nginx:1.25.2
+    # Port pc:container
+    ports:
+      - 8000:80
+    # Mount local files in a container
+    volumes:
+      # ./src/ mount to container in /var/www/html
+      - ./src:/var/www/html
+      # ./docker/nginx/ mount to container in /etc/nginx/conf.d/
+      - ./docker/nginx:/etc/nginx/conf.d
+    # Dependence
+    depends_on:
+      - php
+    # Startup
+    restart: always
+  # PHP-FPM
+  php:
+    # Container name
+    container_name: waya-web_php
+    build:
+      # Dockerfile path
+      context: ./docker/php
+      # Dockerfile name
+      dockerfile: Dockerfile
+    # Container environment variable
+    env_file: .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_HOSTNAME: ${MYSQL_HOSTNAME}
+      MYSQL_TCP_PORT: ${MYSQL_TCP_PORT}
+      PHP_MEMORY_LIMIT: ${PHP_MEMORY_LIMIT}
+      TZ: ${TZ}
+    volumes:
+      # Mount ./src to /var/www/html in container
+      - ./src:/var/www/html
+      # Replace default zz-docker.conf
+      - ./docker/php/zz-docker.conf:/usr/local/etc/php-fpm.d/zz-docker.conf
+    #Dependence
+    depends_on:
+      - mariadb
+    # Port is specified in ./docker/php/zz-docker.conf
+    ports:
+      - 9010:9000
+    # Startup
+    restart: always
+  # MarinDB
+  mariadb:
+    # Container name
+    container_name: waya-web_mariadb
+    # Container image
+    image: mariadb:11.1.2
+    # Container environment variable
+    #env_file: .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_HOSTNAME: ${MYSQL_HOSTNAME}
+      TZ: ${TZ}
+    # Mount local files in a container
+    volumes:
+      # Volume mount
+      - ./mariadb_data:/var/lib/mysql
+      - ./docker/mariadb/my.cnf:/etc/mysql/conf.d/my.cnf
+      # - ./docker/mysql/sql:/docker-entrypoint-initdb.d
+    # Port pc:container
+    ports:
+      #- 3310:3306
+      - '${MYSQL_TCP_PORT}:3306'
+    # Startup
+    restart: always
+    # Please watch page. https://zenn.dev/qljmssqh/articles/97dd13d28e1eac
+    command: --default-authentication-plugin=mysql_native_password --sort_buffe>
+  # phpMyAdmin
+  phpmyadmin:
+    # Container name
+    container_name: waya-web_phpmyadmin
+    # Container image
+    image: phpmyadmin:latest
+    # Container environment variable
+    environment:
+      PMA_ARBITRARY: '1' # おまじない
+      PMA_HOSTS: ${MYSQL_HOSTNAME}
+      PMA_USER: ${MYSQL_USER}
+      PMA_PASSWORD: ${MYSQL_PASSWORD}
+    # Mount local files in a container
+    volumes:
+    - ./docker/phpmyadmin/sessions:/sessions
+    # Port pc:container
+    ports:
+      - '${PMA_TCP_PORT}:80'
+    # Startup
+    restart: always
+
+#volumes:
+#  mariadb_data:
