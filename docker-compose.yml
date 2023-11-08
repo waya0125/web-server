@@ -33,7 +33,7 @@ services:
       # Dockerfile name
       dockerfile: Dockerfile
     # Container environment variable
-    env_file: .env
+    #env_file: .env
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
